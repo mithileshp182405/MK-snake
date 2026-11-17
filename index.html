@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#06070d" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="application-name" content="¹²ßñàké" />
+    <meta name="description" content="¹²ßñàké — a fast, neon snake game with levels, lives and rival snakes. Crisp up to 4K." />
+    <meta property="og:title" content="¹²ßñàké" />
+    <meta property="og:description" content="A fast, neon snake game with levels, lives and rival snakes." />
+    <meta property="og:image" content="assets/logo-512.png" />
+    <title>¹²ßñàké</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="intro-active">
+    <!-- Intro: MKLOFT splash → cinematic loading screen (snake key art) → main game (automatic, see intro.js) -->
+    <div class="intro" id="intro" data-stage="mk" role="presentation">
+      <!-- stars (splash) and the animated key art, glitch, shards and flare (loading) -->
+      <canvas class="intro-canvas" id="introCanvas" aria-hidden="true"></canvas>
+
+      <div class="intro-mk">
+        <h1 class="mk-word" aria-label="MKLOFT">MKLOFT</h1>
+      </div>
+
+      <div class="intro-load">
+        <div class="ld-hud">
+          <div class="ld-chip"><i class="ld-dot"></i>MKLOFT</div>
+
+          <div class="ld-logo">
+            <img class="load-logo" src="assets/logo-512.png" alt="" width="256" height="256" decoding="async" />
+          </div>
+
+          <h2 class="ld-title" aria-label="¹²ßñàké">
+            <span class="ld-ghost ld-ghost-a" aria-hidden="true">¹²ßñàké</span>
+            <span class="ld-ghost ld-ghost-b" aria-hidden="true">¹²ßñàké</span>
+            <span class="ld-title-text">¹²ßñàké</span>
+          </h2>
+
+          <p class="ld-tip"><b>TIP <span id="loadTipNo">01</span></b><span id="loadTip">Lose a life, keep your score, target and snake length.</span></p>
+
+          <div class="load-bar-wrap" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="loadBarWrap">
+            <div class="load-row">
+              <span class="load-status" id="loadStatus">Waking the snake…</span>
+              <span class="load-pct"><span id="loadPct">0</span><small>%</small></span>
+            </div>
+            <div class="load-track" id="loadTrack">
+              <div class="load-segs"><i class="load-fill"></i></div>
+              <i class="load-head"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- fine film grain over everything -->
+      <div class="ld-grain" aria-hidden="true"></div>
+    </div>
+
+    <main class="app" id="app">
+      <!-- Top bar: brand + pause + account -->
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-mark" src="assets/logo.png" srcset="assets/logo.png 1x, assets/logo-512.png 2x" alt="" width="40" height="40" decoding="async" />
+          <h1>¹²ßñàké</h1>
+        </div>
+
+        <div class="actions">
+          <button id="pauseBtn" class="btn btn-icon" type="button" data-state="play" aria-label="Start game">
+            <svg class="ico ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
+            <svg class="ico ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+          </button>
+          <button id="accountBtn" class="btn btn-chip" type="button" aria-haspopup="dialog">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6" /><path d="M5 20c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4" /></svg>
+            <span id="accountLabel">Sign in</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Stats -->
+      <section class="stats" aria-label="Game stats">
+        <div class="stat stat-level">
+          <span class="stat-label">Level</span>
+          <strong id="levelLabel">1</strong>
+          <span id="hardBadge" class="badge" hidden>Hard</span>
+        </div>
+        <div class="stat stat-score">
+          <span class="stat-label">Score</span>
+          <strong id="scoreLabel">0</strong>
+        </div>
+        <div class="stat stat-best">
+          <span class="stat-label">Best</span>
+          <strong id="bestLabel">0</strong>
+        </div>
+        <div class="stat stat-target">
+          <span class="stat-label">Target</span>
+          <strong><span id="eatenLabel">0</span><small>/<span id="targetLabel">1</span></small></strong>
+          <i class="meter" aria-hidden="true"><b id="meterFill"></b></i>
+        </div>
+        <div class="stat stat-lives">
+          <span class="stat-label">Lives</span>
+          <div id="livesLabel" class="hearts" role="img" aria-label="5 of 5 lives"></div>
+        </div>
+      </section>
+
+      <!-- Game board -->
+      <section class="stage" aria-label="Game board">
+        <div class="board" id="board">
+          <canvas id="gameCanvas" aria-label="Snake game board"></canvas>
+
+          <div class="overlay" id="overlay" data-variant="ready">
+            <div class="overlay-card">
+              <img class="overlay-logo" src="assets/logo-512.png" alt="¹²ßñàké logo" width="128" height="128" decoding="async" />
+              <p class="overlay-kicker" id="overlayKicker"></p>
+              <h2 id="overlayTitle"></h2>
+              <p class="overlay-text" id="overlayText"></p>
+              <button id="overlayBtn" class="btn btn-primary btn-lg" type="button"></button>
+              <p class="overlay-hint" id="overlayHint">
+                <span class="hint-touch">Swipe anywhere to steer</span>
+                <span class="hint-keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to steer &middot; <kbd>Space</kbd> pauses</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Portrait layouts: status sits right under the board -->
+        <div class="status status-inline" data-tone="ok" role="status" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="status-text">Ready</span>
+        </div>
+      </section>
+
+      <!-- Landscape layouts: status lives in the side panel -->
+      <div class="status status-panel" data-tone="ok" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="status-text">Ready</span>
+      </div>
+
+      <!-- Shown on wide / landscape layouts only -->
+      <section class="help" aria-label="How to play">
+        <h2>How to play</h2>
+        <ul>
+          <li><span>Steer</span><span class="hint-keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> / <kbd>WASD</kbd></span><span class="hint-touch">Swipe anywhere</span></li>
+          <li><span>Pause</span><span class="hint-keys"><kbd>Space</kbd> / <kbd>P</kbd></span><span class="hint-touch">Pause button</span></li>
+          <li><span>Goal</span><span>Eat pills to reach the target</span></li>
+          <li><span>Walls</span><span>Purple walls cost a life</span></li>
+          <li><span>Lives</span><span>Lose a life: score, target and snake size stay. Lose all 5: everything resets</span></li>
+          <li><span>Hard level</span><span>Every 5th level adds rival snakes</span></li>
+        </ul>
+      </section>
+    </main>
+
+    <!-- Account / save progress -->
+    <dialog id="accountDialog" aria-labelledby="accountTitle">
+      <div class="dialog-head">
+        <h2 id="accountTitle">Save progress</h2>
+        <button id="closeAccountBtn" class="btn btn-icon btn-ghost" type="button" aria-label="Close">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        </button>
+      </div>
+
+      <form id="authForm" class="dialog-body" autocomplete="on" novalidate>
+        <div id="authSignedOut">
+          <p class="dialog-note">Log in with your mobile number to keep your level, score and lives on this device.</p>
+          <label class="field-label" for="mobileInput">Mobile number</label>
+          <div class="auth-row" id="authRow">
+            <input id="mobileInput" name="tel-national" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="10-digit mobile number" maxlength="10" />
+            <button id="saveProgressBtn" class="btn btn-primary" type="submit">Login</button>
+          </div>
+          <p class="field-error" id="authError" role="alert" hidden></p>
+        </div>
+
+        <div id="authSignedIn" hidden>
+          <p class="dialog-note">Signed in as <strong id="signedInNumber">—</strong>. Your progress saves automatically after every level and every life lost.</p>
+          <button id="logoutBtn" class="btn btn-danger btn-block" type="button">Logout</button>
+          <p class="dialog-fine">Logging out also clears the progress saved for this number.</p>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="intro.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
